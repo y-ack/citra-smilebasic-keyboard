@@ -1,0 +1,53 @@
+* citra-smilebasic-keyboard
+Use a physical keyboard to interact with SmileBASIC in Citra
+
+*It is HIGHLY RECOMMENDED that you map the D-Pad buttons to the arrow keys prior to using this script*
+
+this guide uses emacs key notation
+| prefix | meaning |
+|--------+---------|
+| C | Control |
+| M | Alt |
+
+
+** Global
+ - M-x :: toggle Controller Mode
+ - CapsLock :: switch keyboard case (if possible)
+ 
+** Normal Mode
+ - normal keys :: insert text
+ - backspace :: backspace
+ - RET :: insert newline
+ - C-s :: save slot (enable Dialog Mode)
+ - C-o :: open file in slot
+ - C-spc / Shift :: enable Select Mode
+ - C-v :: paste
+ - C-z :: undo
+ - C-y :: redo
+
+ - C-f :: enable Search Mode
+ - C-h :: enable Search Mode with replace on 
+ 
+** Search Mode
+ - normal keys :: enter search/replace query
+ - C-, (C-<) :: previous result
+ - C-. (C->) :: next result
+ - RET :: commit replace
+ - C-h :: toggle replace mode
+ 
+** Select Mode
+ - C-c :: copy
+ - C-x :: cut
+ - C-v :: paste
+ - C-spc / Shift :: disable Select Mode
+ 
+** Controller Mode
+Keys are unassigned and default to their meaning as Citra buttons
+ - normal keys :: unassigned
+ - Shift :: enable Select Mode
+ 
+** Dialog Mode
+ - valid filename keys :: enter text
+ - C-c :: cancel
+ - RET :: OK
+ 
