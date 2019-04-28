@@ -343,12 +343,12 @@ return
 return
 
 ; forward/reverse
-^sc33::
+^sc34::
 if (SearchMode) {
 	TapScreen(294,8)
 }
 return
-^sc34::
+^sc33::
 if (SearchMode) {
 	TapScreen(244,8)
 }
