@@ -8,6 +8,7 @@ this guide uses emacs key notation
 |--------+---------|
 | C | Control |
 | M | Alt |
+| S | Shift |
 
 
 ** Global
@@ -22,13 +23,27 @@ this guide uses emacs key notation
  - RET: insert newline
  - C-s: save slot (enable *Dialog Mode*)
  - C-o: open file in slot
- - : enable *Select Mode*
  - C-v: paste
  - C-z: undo
  - C-y: redo
+ 
+ - C-LeftArr, home: beginning of line
+ - C-RightArr, end: end of line
+ - C-Up, PgUp: scroll up
+ - C-Down, PgDn: scroll down
 
  - C-f: enable *Search Mode*
- - C-h: enable *Search Mode* with replace on 
+ - C-S-H: enable *Search Mode* with replace on 
+ 
+ - C-<SPACE>: enable *Select Mode*
+ - S-arrows: select and move
+ 
+ - *C-/*, *C-.*: make current line a comment
+ - M-w: insert WHILE WEND (experimental)
+ - M-i: insert IF THEN (experimental)
+ - M-l: insert ELSEIF THEN (experimental)
+ 
+ - *C-h*: toggle SB help
  
 ** Search Mode
  - normal keys: enter search/replace query
@@ -41,7 +56,7 @@ this guide uses emacs key notation
  - C-c: copy
  - C-x: cut
  - C-v: paste
- - C-spc / Shift: disable *Select Mode*
+ - C-<SPACE>: disable *Select Mode*
  
 ** Controller Mode
 Keys are unassigned and default to their meaning as Citra buttons
