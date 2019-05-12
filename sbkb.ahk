@@ -1,10 +1,13 @@
 #IfWinActive ahk_exe citra-qt.exe
+;#Warn
 
 WinActivate , ahk_exe citra-qt.exe
-SetKeyDelay, -1, 8
+SetKeyDelay, -1, 1
 
 ; macOS/GNU+Linux: use "~/.config/citra-emu/config/qt-config.ini"
 configDir := A_AppData . "\Citra\config\qt-config.ini"
+
+scriptConfig := A_WorkingDir . "\sbkb.cfg"
 
 ; DONE need to default to vkXX format
 global buttonA = "vk50"
@@ -31,13 +34,25 @@ global sLeft = 0
 global sTop = 0
 global sRight = 0
 global sBottom = 0
+file := FileOpen(scriptConfig,"r")
+if IsObject(file)
+{
+	sLeft   = % file.ReadUInt()
+	sTop    = % file.ReadUInt()
+	sRight  = % file.ReadUInt()
+	sBottom = % file.ReadUInt()
+	file.Close()
+}
+
 
 global ControllerMode = 0
-global UpperCaseMode = 1
 global SelectMode = 0
 global SearchMode = 0
 global DialogMode = 0
 global slot = 0
+global UpperCaseMode = 0 ; assume uppercase
+SetCapsLockState, On
+
 
 
 ;unused but could maybe be used to try to guess window settings?
@@ -167,199 +182,389 @@ Loop, read, %configDir%
 		{
 			MsgBox, Please set your touch provider as the emulator window`n(Emulation > Configure > Controls > Motion/Touch > Touch Provider)
 		}
-
-;;don't trust any of this
-	If InStr(A_LoopReadLine, "custom_bottom_left=")
-	{
-		;global sLeft = % (SubStr(A_LoopReadLine,20))
-		global sLeft = 0
-		Continue
-	}
-	If InStr(A_LoopReadLine, "custom_bottom_top=")
-	{
-		global sTop = % (SubStr(A_LoopReadLine,19))
-		global sTop *= ((winHeight-136)/480)
-		Continue
-	}
-	If InStr(A_LoopReadLine, "custom_bottom_right=")
-	{
-		;global sRight = % (SubStr(A_LoopReadLine,21))
-		global sRight = winWidth
-		Continue
-	}
-	If InStr(A_LoopReadLine, "custom_bottom_bottom=")
-	{
-		global sBottom = % (SubStr(A_LoopReadLine,22))
-		global sBottom *= ((winHeight-136)/480)
-		Break readconfig
-	}
-;	Break
 }
 
+class SBKey
+{
+	x := 0
+	y := 0
+	; 0 for uppercase KB, 1 for lowercase KB
+	case := 0
+
+	__New(x,y,shift)
+	{
+		this.x := x
+		this.y := y
+		this.case := shift
+	}
+}
+;; uppercase keyboard state
+global SBKeys := []
+SBKeys["!"] := new SBKey(31+(0*25), 69, 0)
+SBKeys[""""]:= new SBKey(31+(1*25), 69, 0)
+SBKeys["#"] := new SBKey(31+(2*25), 69, 0)
+SBKeys["$"] := new SBKey(31+(3*25), 69, 0)
+SBKeys["%"] := new SBKey(31+(4*25), 69, 0)
+SBKeys["&"] := new SBKey(31+(5*25), 69, 0)
+SBKeys["("] := new SBKey(31+(6*25), 69, 0)
+SBKeys[")"] := new SBKey(31+(7*25), 69, 0)	
+SBKeys["-"] := new SBKey(31+(8*25), 69, 0)
+SBKeys["+"] := new SBKey(31+(9*25), 69, 0)
+SBKeys["="] := new SBKey(31+(10*25), 69, 0)
+
+SBKeys["_1"] := new SBKey(14+(0*25), 95, 0)
+SBKeys["_2"] := new SBKey(14+(1*25), 95, 0)
+SBKeys["_3"] := new SBKey(14+(2*25), 95, 0)
+SBKeys["_4"] := new SBKey(14+(3*25), 95, 0)
+SBKeys["_5"] := new SBKey(14+(4*25), 95, 0)
+SBKeys["_6"] := new SBKey(14+(5*25), 95, 0)
+SBKeys["_7"] := new SBKey(14+(6*25), 95, 0)
+SBKeys["_8"] := new SBKey(14+(7*25), 95, 0)
+SBKeys["_9"] := new SBKey(14+(8*25), 95, 0)
+SBKeys["_0"] := new SBKey(14+(9*25), 95, 0)
+SBKeys["["] := new SBKey(14+(10*25), 95, 0)
+SBKeys["]"] := new SBKey(14+(11*25), 95, 0)
+
+SBKeys["Q"] := new SBKey(31+(0*25), 121, 0)
+SBKeys["W"] := new SBKey(31+(1*25), 121, 0)
+SBKeys["E"] := new SBKey(31+(2*25), 121, 0)
+SBKeys["R"] := new SBKey(31+(3*25), 121, 0)
+SBKeys["T"] := new SBKey(31+(4*25), 121, 0)
+SBKeys["Y"] := new SBKey(31+(5*25), 121, 0)
+SBKeys["U"] := new SBKey(31+(6*25), 121, 0)
+SBKeys["I"] := new SBKey(31+(7*25), 121, 0)
+SBKeys["O"] := new SBKey(31+(8*25), 121, 0)
+SBKeys["P"] := new SBKey(31+(9*25), 121, 0)
+SBKeys["@"] := new SBKey(31+(10*25), 121, 0)
+SBKeys["*"] := new SBKey(31+(11*25), 121, 0)
+
+SBKeys["|"] := new SBKey(14+(0*25), 147, 0)
+SBKeys["A"] := new SBKey(14+(1*25), 147, 0)
+SBKeys["S"] := new SBKey(14+(2*25), 147, 0)
+SBKeys["D"] := new SBKey(14+(3*25), 147, 0)
+SBKeys["F"] := new SBKey(14+(4*25), 147, 0)
+SBKeys["G"] := new SBKey(14+(5*25), 147, 0)
+SBKeys["H"] := new SBKey(14+(6*25), 147, 0)
+SBKeys["J"] := new SBKey(14+(7*25), 147, 0)
+SBKeys["K"] := new SBKey(14+(8*25), 147, 0)
+SBKeys["L"] := new SBKey(14+(9*25), 147, 0)
+SBKeys[";"] := new SBKey(14+(10*25), 147, 0)
+SBKeys[":"] := new SBKey(14+(11*25), 147, 0)
+
+SBKeys["?"] := new SBKey(31+(0*25), 173, 0)
+SBKeys["Z"] := new SBKey(31+(1*25), 173, 0)
+SBKeys["X"] := new SBKey(31+(2*25), 173, 0)
+SBKeys["C"] := new SBKey(31+(3*25), 173, 0)
+SBKeys["V"] := new SBKey(31+(4*25), 173, 0)
+SBKeys["B"] := new SBKey(31+(5*25), 173, 0)
+SBKeys["N"] := new SBKey(31+(6*25), 173, 0)
+SBKeys["M"] := new SBKey(31+(7*25), 173, 0)
+SBKeys[","] := new SBKey(31+(8*25), 173, 0)
+SBKeys["."] := new SBKey(31+(9*25), 173, 0)
+SBKeys["'"] := new SBKey(31+(10*25), 173, 0)
+
+SBKeys["<"] := new SBKey(197+(0*25), 199, 0)
+SBKeys[">"] := new SBKey(197+(1*25), 199, 0)
+SBKeys["_"] := new SBKey(197+(2*25), 199, 0)
+SBKeys["/"] := new SBKey(197+(3*25), 199, 0)
+
+;space, probably not actually used
+SBKeys[" "] := new SBKey(197+(3*25), 199, 0)
+
+;; lowercase keyboard
+SBKeys["q"] := new SBKey(31+(0*25), 121, 1)
+SBKeys["w"] := new SBKey(31+(1*25), 121, 1)
+SBKeys["e"] := new SBKey(31+(2*25), 121, 1)
+SBKeys["r"] := new SBKey(31+(3*25), 121, 1)
+SBKeys["t"] := new SBKey(31+(4*25), 121, 1)
+SBKeys["y"] := new SBKey(31+(5*25), 121, 1)
+SBKeys["u"] := new SBKey(31+(6*25), 121, 1)
+SBKeys["i"] := new SBKey(31+(7*25), 121, 1)
+SBKeys["o"] := new SBKey(31+(8*25), 121, 1)
+SBKeys["p"] := new SBKey(31+(9*25), 121, 1)
+SBKeys["``"] := new SBKey(31+(10*25), 121, 1)
+
+SBKeys["a"] := new SBKey(14+(1*25), 147, 1)
+SBKeys["s"] := new SBKey(14+(2*25), 147, 1)
+SBKeys["d"] := new SBKey(14+(3*25), 147, 1)
+SBKeys["f"] := new SBKey(14+(4*25), 147, 1)
+SBKeys["g"] := new SBKey(14+(5*25), 147, 1)
+SBKeys["h"] := new SBKey(14+(6*25), 147, 1)
+SBKeys["j"] := new SBKey(14+(7*25), 147, 1)
+SBKeys["k"] := new SBKey(14+(8*25), 147, 1)
+SBKeys["l"] := new SBKey(14+(9*25), 147, 1)
+
+SBKeys["z"] := new SBKey(31+(1*25), 173, 1)
+SBKeys["x"] := new SBKey(31+(2*25), 173, 1)
+SBKeys["c"] := new SBKey(31+(3*25), 173, 1)
+SBKeys["v"] := new SBKey(31+(4*25), 173, 1)
+SBKeys["b"] := new SBKey(31+(5*25), 173, 1)
+SBKeys["n"] := new SBKey(31+(6*25), 173, 1)
+SBKeys["m"] := new SBKey(31+(7*25), 173, 1)
+
+SBKeys["{"] := new SBKey(31+(6*25), 69, 1)
+SBKeys["}"] := new SBKey(31+(7*25), 69, 1)
+SBKeys["^"] := new SBKey(14+(7*25), 95, 1)
+SBKeys["yen"] := new SBKey(14+(8*25), 95, 1)
+SBKeys["~"] := new SBKey(14+(9*25), 95, 1)
+SBKeys["\"] := new SBKey(197+(3*25), 199, 1)
+
+;; dialog keyboard
+SBKeys["DLG1"] := new SBKey(20+(0*25), 114, 2)
+SBKeys["DLG2"] := new SBKey(20+(1*25), 114, 2)
+SBKeys["DLG3"] := new SBKey(20+(2*25), 114, 2)
+SBKeys["DLG4"] := new SBKey(20+(3*25), 114, 2)
+SBKeys["DLG5"] := new SBKey(20+(4*25), 114, 2)
+SBKeys["DLG6"] := new SBKey(20+(5*25), 114, 2)
+SBKeys["DLG7"] := new SBKey(20+(6*25), 114, 2)
+SBKeys["DLG8"] := new SBKey(20+(7*25), 114, 2)
+SBKeys["DLG9"] := new SBKey(20+(8*25), 114, 2)
+SBKeys["DLG0"] := new SBKey(20+(9*25), 114, 2)
+SBKeys["DLG-"] := new SBKey(20+(10*25), 114, 2)
+
+SBKeys["DLGQ"] := new SBKey(28+(0*25), 140, 2)
+SBKeys["DLGW"] := new SBKey(28+(1*25), 140, 2)
+SBKeys["DLGE"] := new SBKey(28+(2*25), 140, 2)
+SBKeys["DLGR"] := new SBKey(28+(3*25), 140, 2)
+SBKeys["DLGT"] := new SBKey(28+(4*25), 140, 2)
+SBKeys["DLGY"] := new SBKey(28+(5*25), 140, 2)
+SBKeys["DLGU"] := new SBKey(28+(6*25), 140, 2)
+SBKeys["DLGI"] := new SBKey(28+(7*25), 140, 2)
+SBKeys["DLGO"] := new SBKey(28+(8*25), 140, 2)
+SBKeys["DLGP"] := new SBKey(28+(9*25), 140, 2)
+
+SBKeys["DLGA"] := new SBKey(36+(0*25), 166, 2)
+SBKeys["DLGS"] := new SBKey(36+(1*25), 166, 2)
+SBKeys["DLGD"] := new SBKey(36+(2*25), 166, 2)
+SBKeys["DLGF"] := new SBKey(36+(3*25), 166, 2)
+SBKeys["DLGG"] := new SBKey(36+(4*25), 166, 2)
+SBKeys["DLGH"] := new SBKey(36+(5*25), 166, 2)
+SBKeys["DLGJ"] := new SBKey(36+(8*25), 166, 2)
+SBKeys["DLGK"] := new SBKey(36+(7*25), 166, 2)
+SBKeys["DLGL"] := new SBKey(36+(8*25), 166, 2)
+
+SBKeys["DLGZ"] := new SBKey(44+(0*25), 192, 2)
+SBKeys["DLGX"] := new SBKey(44+(1*25), 192, 2)
+SBKeys["DLGC"] := new SBKey(44+(2*25), 192, 2)
+SBKeys["DLGV"] := new SBKey(44+(3*25), 192, 2)
+SBKeys["DLGB"] := new SBKey(44+(4*25), 192, 2)
+SBKeys["DLGN"] := new SBKey(44+(5*25), 192, 2)
+SBKeys["DLGM"] := new SBKey(44+(6*25), 192, 2)
+SBKeys["DLG."] := new SBKey(44+(7*25), 192, 2)
+SBKeys["DLG_"] := new SBKey(44+(8*25), 192, 2)
+
 ^lbutton::
-MouseGetPos x,y
-global sLeft = x
-global sTop = y
+	MouseGetPos x,y
+	global sLeft = x
+	global sTop = y
 return
 ^rbutton::
-MouseGetPos x,y
-global sRight = x
-global sBottom = y
+	MouseGetPos x,y
+	global sRight = x
+	global sBottom = y
+
+	; save the configuration for next time
+	file := FileOpen(scriptConfig,"w")
+	if IsObject(file)
+	{
+		file.WriteUInt(sLeft)
+		file.WriteUInt(sTop)
+		file.WriteUInt(sRight)
+		file.WriteUInt(sBottom)
+		file.Close()
+	}
+return
+!x::
+	global ControllerMode = !ControllerMode
 return
 
-DoClick(x, y) {
+DoClick(x, y, d) {
 	MouseClick, L, x, y, 1, 0, D
-	Sleep, 8
+	Sleep, d
 	MouseClick, L, x, y, 1, 0, U
 }
 
-TapScreen(X, Y) {
-DoClick(((X/320)*(sRight-sLeft))+sLeft,((Y/240)*(sBottom-sTop))+sTop)
+TapScreen(X, Y, d) {
+	DoClick(((X/320)*(sRight-sLeft))+sLeft,((Y/240)*(sBottom-sTop))+sTop, d)
 }
 
 ShiftTap(X,Y) {
 	Send, {%buttonL% down}
-	TapScreen(X,Y)
+	TapScreen(X,Y,2)
 	Send, {%buttonL% up}
 }
 
-!x::
-global ControllerMode = !ControllerMode
-return
-CapsLock::
-global UpperCaseMode = !UpperCaseMode
-TapScreen(9,176)
-return
+SmartTap(character) {
+	o := {}
+	t := 0
+	if (DialogMode) {
+		o := SBKeys[Format("DLG{:U}", character)]
+	} else {
+		; xor
+		if (RegexMatch(character, "^[A-Za-z]$") > 0) and (GetKeyState("CapsLock", "T") or GetKeyState("Shift", "P")) and !(GetKeyState("CapsLock", "T") and  GetKeyState("Shift", "P")) {
+			t := 1
+		}
+		o := SBKeys[character]
+	}
+
+	;; not != to make unmoded keys nicer
+	if (o.case == !UpperCaseMode and !t) or (RegexMatch(character, "^[A-Z]$") and UpperCaseMode) {
+		ShiftTap(o.x,o.y)
+	} else {
+		TapScreen(o.x,o.y,0)
+	}
+}
 
 !left::
 slot := Max(0,slot-1)
-TapScreen(93-17+(slot*17),226)
+TapScreen(93-17+(slot*17),226,0)
 return
 !right::
 slot := Min(3,slot+1)
-TapScreen(76+(slot*17),226)
+TapScreen(76+(slot*17),226,0)
 return
 
-esc::exitapp
+esc::
+	if (GetKeyState("CapsLock", "T")) {
+		SetCapsLockState, Off
+	}
+	exitapp
+return
 
 ;Keyboard mode
 
-#If (!ControllerMode) and (!DialogMode) and (!SelectMode) and WinActive("ahk_exe citra-qt.exe")
+#If (!ControllerMode) and (!SelectMode) and WinActive("ahk_exe citra-qt.exe")
 
-+1::TapScreen(31+(0*25),69)
-+sc28::TapScreen(31+(1*25),69)
-+3::TapScreen(31+(2*25),69)
-+4::TapScreen(31+(3*25),69)
-+5::TapScreen(31+(4*25),69)
-+7::TapScreen(31+(5*25),69)
-(::TapScreen(31+(6*25),69)
-)::TapScreen(31+(7*25),69)
--::TapScreen(31+(8*25),69)
-+::TapScreen(31+(9*25),69)
-=::TapScreen(31+(10*25),69)
+~CapsLock::
+	global UpperCaseMode = !UpperCaseMode
+	TapScreen(9,176,0)
+return
 
-1::TapScreen(14+(0*25),95)
-2::TapScreen(14+(1*25),95)
-3::TapScreen(14+(2*25),95)
-4::TapScreen(14+(3*25),95)
-5::TapScreen(14+(4*25),95)
-6::TapScreen(14+(5*25),95)
-7::TapScreen(14+(6*25),95)
-8::TapScreen(14+(7*25),95)
-9::TapScreen(14+(8*25),95)
-0::TapScreen(14+(9*25),95)
-[::TapScreen(14+(10*25),95)
-]::TapScreen(14+(11*25),95)
+;; RECONFIGURE IF NOT US QWERTY
+;; RECONFIGURE IF NOT US QWERTY
++sc02::SmartTap("!")
++sc28::SmartTap("""")
++sc04::SmartTap("#")
++sc05::SmartTap("$")
++sc06::SmartTap("%")
++sc08::SmartTap("&")
++sc0A::SmartTap("(") 
++sc0B::SmartTap(")")
+sc0C::SmartTap("-")  
++::SmartTap("+")
+=::SmartTap("=")
 
-q::TapScreen(31+(0*25),121)
-+q::ShiftTap(31+(0*25),121)
-w::TapScreen(31+(1*25),121)
-+w::ShiftTap(31+(1*25),121)
-e::TapScreen(31+(2*25),121)
-+e::ShiftTap(31+(2*25),121)
-r::TapScreen(31+(3*25),121)
-+r::ShiftTap(31+(3*25),121)
-t::TapScreen(31+(4*25),121)
-+t::ShiftTap(31+(4*25),121)
-y::TapScreen(31+(5*25),121)
-+y::ShiftTap(31+(5*25),121)
-u::TapScreen(31+(6*25),121)
-+u::ShiftTap(31+(6*25),121)
-i::TapScreen(31+(7*25),121)
-+i::ShiftTap(31+(7*25),121)
-o::TapScreen(31+(8*25),121)
-+o::ShiftTap(31+(8*25),121)
-p::TapScreen(31+(9*25),121)
-+p::ShiftTap(31+(9*25),121)
-@::TapScreen(31+(10*25),121)
-*::TapScreen(31+(11*25),121)
+sc02::SmartTap("_1") 
+sc03::SmartTap("_2")
+sc04::SmartTap("_3")
+sc05::SmartTap("_4")
+sc06::SmartTap("_5")
+sc07::SmartTap("_6")
+sc08::SmartTap("_7")
+sc09::SmartTap("_8")
+sc0A::SmartTap("_9")
+sc0B::SmartTap("_0")
+[::SmartTap("[")
++{::SmartTap("{")
+]::SmartTap("]")
++}::SmartTap("}")
 
-|::TapScreen(14+(0*25),147)
-a::TapScreen(14+(1*25),147)
-+a::ShiftTap(14+(1*25),147)
-s::TapScreen(14+(2*25),147)
-+s::ShiftTap(14+(2*25),147)
-d::TapScreen(14+(3*25),147)
-+d::ShiftTap(14+(3*25),147)
-f::TapScreen(14+(4*25),147)
-+f::ShiftTap(14+(4*25),147)
-g::TapScreen(14+(5*25),147)
-+g::ShiftTap(14+(5*25),147)
-h::TapScreen(14+(6*25),147)
-+h::ShiftTap(14+(6*25),147)
-j::TapScreen(14+(7*25),147)
-+j::ShiftTap(14+(7*25),147)
-k::TapScreen(14+(8*25),147)
-+k::ShiftTap(14+(8*25),147)
-l::TapScreen(14+(9*25),147)
-+l::ShiftTap(14+(9*25),147)
-sc27::TapScreen(14+(10*25),147)
-+sc27::TapScreen(14+(11*25),147)
+q::SmartTap("q")
++Q::SmartTap("Q")
+w::SmartTap("w")
++W::SmartTap("W")
+e::SmartTap("e")
++e::SmartTap("E")
+r::SmartTap("r")
++r::SmartTap("R")
+t::SmartTap("t")
++t::SmartTap("T")
+y::SmartTap("y")
++y::SmartTap("Y")
+u::SmartTap("u")
++u::SmartTap("U")
+i::SmartTap("i")
++i::SmartTap("I")
+o::SmartTap("o")
++o::SmartTap("O")
+p::SmartTap("p")
++p::SmartTap("P")
++sc03::SmartTap("@")
++sc09::SmartTap("*")
 
-?::TapScreen(31+(0*25),173)
-z::TapScreen(31+(1*25),173)
-+z::ShiftTap(31+(1*25),173)
-x::TapScreen(31+(2*25),173)
-+x::ShiftTap(31+(2*25),173)
-c::TapScreen(31+(3*25),173)
-+c::ShiftTap(31+(3*25),173)
-v::TapScreen(31+(4*25),173)
-+v::ShiftTap(31+(4*25),173)
-b::TapScreen(31+(5*25),173)
-+b::ShiftTap(31+(5*25),173)
-n::TapScreen(31+(6*25),173)
-+n::ShiftTap(31+(6*25),173)
-m::TapScreen(31+(7*25),173)
-+m::ShiftTap(31+(7*25),173)
-sc33::TapScreen(31+(8*25),173)
-sc34::TapScreen(31+(9*25),173)
-sc28::TapScreen(31+(10*25),173)
++sc2B::SmartTap("|")
+a::SmartTap("a")
++a::SmartTap("A")
+s::SmartTap("s")
++s::SmartTap("S")
+d::SmartTap("d")
++d::SmartTap("D")
+f::SmartTap("f")
++f::SmartTap("F")
+g::SmartTap("g")
++g::SmartTap("G")
+h::SmartTap("h")
++h::SmartTap("H")
+j::SmartTap("j")
++j::SmartTap("J")
+k::SmartTap("k")
++k::SmartTap("K")
+l::SmartTap("l")
++l::SmartTap("L")
+sc27::SmartTap(";")
++sc27::SmartTap(":")
 
-+sc33::TapScreen(197+(0*25),199)
-+sc34::TapScreen(197+(1*25),199)
-_::TapScreen(197+(2*25),199)
-/::TapScreen(197+(3*25),199)
++sc35::SmartTap("?")
+z::SmartTap("z")
++z::SmartTap("Z")
+x::SmartTap("x")
++x::SmartTap("X")
+c::SmartTap("c")
++c::SmartTap("C")
+v::SmartTap("v")
++v::SmartTap("V")
+b::SmartTap("b")
++b::SmartTap("B")
+n::SmartTap("n")
++n::SmartTap("N")
+m::SmartTap("m")
++m::SmartTap("M")
+sc33::SmartTap(",")
+sc34::SmartTap(".")
+sc28::SmartTap("'")
+
++sc33::SmartTap("<")
++sc34::SmartTap(">")
++sc0C::SmartTap("_")
+sc35::SmartTap("/")
+sc2B::SmartTap("\")
++sc07::SmartTap("^")
++sc29::SmartTap("~")
+sc29::SmartTap("``")
 
 
-F1::TapScreen(32+(0*64),8)
-F2::TapScreen(32+(1*64),8)
-F3::TapScreen(32+(2*64),8)
-F4::TapScreen(32+(3*64),8)
-F5::TapScreen(32+(4*64),8)
+F1::TapScreen(32+(0*64),8,0)
+F2::TapScreen(32+(1*64),8,0)
+F3::TapScreen(32+(2*64),8,0)
+F4::TapScreen(32+(3*64),8,0)
+F5::TapScreen(32+(4*64),8,0)
 
-del::TapScreen(311,95)
+del::TapScreen(311,95,0)
 
-F6::TapScreen(22+(0*41),226)
-F7::TapScreen(22+(1*41),226)
+F6::TapScreen(22+(0*41),226,0)
+F7::TapScreen(22+(1*41),226,0)
 
-F8::TapScreen(93+(0*17),226)
-F9::TapScreen(93+(1*17),226)
-F10::TapScreen(93+(2*17),226)
+F8::TapScreen(93+(0*17),226,0)
+F9::TapScreen(93+(1*17),226,0)
+F10::TapScreen(93+(2*17),226,0)
 
-space::TapScreen(143+(0*25),199)
-+space::TapScreen(143+(0*25),199)
+space::TapScreen(143+(0*25),199,0)
++space::TapScreen(143+(0*25),199,0)
 
-bs::Send, {%buttonY%}
+bs::
+Send, {%buttonY%}
+Send, %buttonY%
+return
 +bs::Send, {%buttonY%}
 ^bs::
 	Send, {%buttonL% down}
@@ -386,39 +591,40 @@ pgdn::
 return
 
 
+;; Command: comment line
 ^sc28::
 ^/::
 	Send, {%buttonCLeft%}
-	TapScreen(31+(10*25),173)
-	;TapScreen(143+(0*25),199)
+	TapScreen(31+(10*25),173,0)
+	TapScreen(143+(0*25),199,0)
 return
 
 !sc34::
 	if (SearchMode) {
-		TapScreen(308,25)
+		TapScreen(308,25,0)
 	}
 	global SearchMode = 1
-	TapScreen(308,25)
-	TapScreen(14+(3*25),147)
-	TapScreen(31+(2*25),121)
-	TapScreen(14+(4*25),147)
-	TapScreen(143+(0*25),199)
+	TapScreen(308,25,0)
+	TapScreen(14+(3*25),147,0)
+	TapScreen(31+(2*25),121,0)
+	TapScreen(14+(4*25),147,0)
+	TapScreen(143+(0*25),199,0)
 return
 
 !w::
 	SetKeyDelay, -1, 64
 	Send, {%buttonCLeft%}
-	TapScreen(31+(1*25),121) ;WHILE
-	TapScreen(14+(6*25),147)
-	TapScreen(31+(7*25),121)
-	TapScreen(14+(9*25),147)
-	TapScreen(31+(2*25),121)
-	TapScreen(143+(0*25),199)
+	TapScreen(31+(1*25),121,0) ;WHILE
+	TapScreen(14+(6*25),147,0)
+	TapScreen(31+(7*25),121,0)
+	TapScreen(14+(9*25),147,0)
+	TapScreen(31+(2*25),121,0)
+	TapScreen(143+(0*25),199,0)
 	Send, {%buttonA%}
-	TapScreen(31+(1*25),121) ;WEND
-	TapScreen(31+(2*25),121)
-	TapScreen(31+(6*25),173)
-	TapScreen(14+(3*25),147)
+	TapScreen(31+(1*25),121,0) ;WEND
+	TapScreen(31+(2*25),121,0)
+	TapScreen(31+(6*25),173,0)
+	TapScreen(14+(3*25),147,0)
 	Send, {%buttonCLeft%}
 	Send, {%buttonLeft%}
 	SetKeyDelay, -1, 8
@@ -426,138 +632,136 @@ return
 !i::
 	SetKeyDelay, -1, 64
 	Send, {%buttonCLeft%}
-	TapScreen(31+(7*25),121) ;IF
-	TapScreen(14+(4*25),147)
-	TapScreen(143+(0*25),199)
+	TapScreen(31+(7*25),121,0) ;IF
+	TapScreen(14+(4*25),147,0)
+	TapScreen(143+(0*25),199,0)
 	Send, {%buttonCRight%}
-	TapScreen(143+(0*25),199)
-	TapScreen(31+(4*25),121) ;THEN
-	TapScreen(14+(6*25),147)
-	TapScreen(31+(2*25),121)
-	TapScreen(31+(6*25),173)
+	TapScreen(143+(0*25),199,0)
+	TapScreen(31+(4*25),121,0) ;THEN
+	TapScreen(14+(6*25),147,0)
+	TapScreen(31+(2*25),121,0)
+	TapScreen(31+(6*25),173,0)
 	SetKeyDelay, -1, 8
 return
 !l::
 	SetKeyDelay, -1, 64
 	Send, {%buttonCLeft%}
-	TapScreen(31+(2*25),121) ;ELSEIF
-	TapScreen(14+(9*25),147)
-	TapScreen(14+(2*25),147)
-	TapScreen(31+(2*25),121)
-	TapScreen(31+(7*25),121)
-	TapScreen(14+(4*25),147)
-	TapScreen(143+(0*25),199)
+	TapScreen(31+(2*25),121,0) ;ELSEIF
+	TapScreen(14+(9*25),147,0)
+	TapScreen(14+(2*25),147,0)
+	TapScreen(31+(2*25),121,0)
+	TapScreen(31+(7*25),121,0)
+	TapScreen(14+(4*25),147,0)
+	TapScreen(143+(0*25),199,0)
 	Send, {%buttonCRight%}
-	TapScreen(143+(0*25),199)
-	TapScreen(31+(4*25),121) ;THEN
-	TapScreen(14+(6*25),147)
-	TapScreen(31+(2*25),121)
-	TapScreen(31+(6*25),173)
+	TapScreen(143+(0*25),199,0)
+	TapScreen(31+(4*25),121,0) ;THEN
+	TapScreen(14+(6*25),147,0)
+	TapScreen(31+(2*25),121,0)
+	TapScreen(31+(6*25),173,0)
 	SetKeyDelay, -1, 8
 return
-	
+
+;; Enter is mode-defined
 return::
 if (SearchMode) {
-	TapScreen(174,8)
+	TapScreen(174,8,0)
 } else {
-	;TapScreen(31+(11*25),173)
 	Send, {%buttonA%}
 }
 return
 +return::Send, {%buttonA%}
 
 
-;save/load
+;; save/load
 ^s::
 	global DialogMode := 1
-	TapScreen(20,198)
-	TapScreen(32,8)
+	TapScreen(20,198,0)
+	TapScreen(32,8,0)
 return
 ^o::
-	TapScreen(20,198)
-	TapScreen(96,8)
+	TapScreen(20,198,0)
+	TapScreen(96,8,0)
 return
 
 ^h::
 	if (!SearchMode) { ; help menu
-		TapScreen(308,45)
+		TapScreen(308,45,0)
 	}
 	if (SearchMode) { ; toggle replace
-		TapScreen(32,8)
+		TapScreen(32,8,0)
 	}
 return
 
-; select/copy/undo
+;; select/copy/undo
 ^space::
 	global SelectMode := 1
-	TapScreen(214+(0*25),225)
+	TapScreen(214+(0*25),225,0)
 return
 +left::
 +right::
 +down::
 +up::	
 if (!SelectMode) {
-	TapScreen(214+(0*25),225)
+	TapScreen(214+(0*25),225,0)
 	global SelectMode := 1
 }
 return
-^v::TapScreen(214+(2*25),225)
-^z::TapScreen(214+(4*25),225)
+^v::TapScreen(214+(2*25),225,0)
+^z::TapScreen(214+(4*25),225,0)
 ^y::
-	TapScreen(20,198)
-	TapScreen(214+(4*25),225)
-	TapScreen(20,198)
+	TapScreen(20,198,0)
+	TapScreen(214+(4*25),225,0)
+	TapScreen(20,198,0)
 return
 
 ; find/replace
 ^f::
-	TapScreen(308,25)
+	TapScreen(308,25,0)
 	global SearchMode = !SearchMode
 return
 +^h::
 	if (!SearchMode) {
-		TapScreen(308,25)
+		TapScreen(308,25,0)
 		global SearchMode = !SearchMode
 	}
 	if (SearchMode) {
-		TapScreen(32,8)
+		TapScreen(32,8,0)
 	}
 return
 
 ; forward/reverse
 ^sc34::
 if (SearchMode) {
-	TapScreen(294,8)
+	TapScreen(294,8,0)
 }
 return
 ^sc33::
 if (SearchMode) {
-	TapScreen(244,8)
+	TapScreen(244,8,0)
 }
 return
 
 ;Mark (Select) Mode
 #If SelectMode and WinActive("ahk_exe citra-qt.exe")
 ^c::
-	TapScreen(214+(1*25),225)
+	TapScreen(214+(1*25),225,0)
 	global SelectMode := 0
 return
 ^x::
-	TapScreen(20,198)
-	TapScreen(214+(1*25),225)
-	TapScreen(20,198)
+	ShiftTap(214+(1*25),225)
 	global SelectMode := 0
 return
 ^v::
-	TapScreen(214+(2*25),225)
+	TapScreen(214+(2*25),225,0)
 	global SelectMode := 0
 return
 bs::
-	TapScreen(31+(11*25),69)
+	TapScreen(31+(11*25),69,0)
 	global SelectMode := 0
 return
 del::
-	TapScreen(311,95)
+	TapScreen(311,95,0)
 	global SelectMode := 0
 return
 
@@ -626,7 +830,7 @@ space::
 return
 
 ^space::
-	TapScreen(214+(0*25),225)
+	TapScreen(214+(0*25),225,0)
 	global SelectMode := 0
 return
 
@@ -636,12 +840,12 @@ return
 #If ControllerMode and WinActive("ahk_exe citra-qt.exe")
 ^space::
 	global SelectMode := 1
-	TapScreen(214+(0*25),225)
+	TapScreen(214+(0*25),225,0)
 return
 
 
 
-;For keyboard (save/load) dialogs
+;For keyboard (save) dialogs
 #If DialogMode and WinActive("ahk_exe citra-qt.exe")
 ^c::
 	DialogMode = 0
@@ -656,47 +860,4 @@ return::
 	}
 return
 
-1::TapScreen(20+(0*25),114)
-2::TapScreen(20+(1*25),114)
-3::TapScreen(20+(2*25),114)
-4::TapScreen(20+(3*25),114)
-5::TapScreen(20+(4*25),114)
-6::TapScreen(20+(5*25),114)
-7::TapScreen(20+(6*25),114)
-8::TapScreen(20+(7*25),114)
-9::TapScreen(20+(8*25),114)
-0::TapScreen(20+(9*25),114)
--::TapScreen(20+(10*25),114)
-bs::TapScreen(20+(11*25),114)
-
-q::TapScreen(28+(0*25),140)
-w::TapScreen(28+(1*25),140)
-e::TapScreen(28+(2*25),140)
-r::TapScreen(28+(3*25),140)
-t::TapScreen(28+(4*25),140)
-y::TapScreen(28+(5*25),140)
-u::TapScreen(28+(6*25),140)
-i::TapScreen(28+(7*25),140)
-o::TapScreen(28+(8*25),140)
-p::TapScreen(28+(9*25),140)
-
-a::TapScreen(36+(0*25),166)
-s::TapScreen(36+(1*25),166)
-d::TapScreen(36+(2*25),166)
-f::TapScreen(36+(3*25),166)
-g::TapScreen(36+(4*25),166)
-h::TapScreen(36+(5*25),166)
-j::TapScreen(36+(6*25),166)
-k::TapScreen(36+(7*25),166)
-l::TapScreen(36+(8*25),166)
-
-z::TapScreen(44+(0*25),192)
-x::TapScreen(44+(1*25),192)
-c::TapScreen(44+(2*25),192)
-v::TapScreen(44+(3*25),192)
-b::TapScreen(44+(4*25),192)
-n::TapScreen(44+(5*25),192)
-m::TapScreen(44+(6*25),192)
-sc34::TapScreen(44+(7*25),192)
-_::TapScreen(44+(8*25),192)
-
+bs::TapScreen(20+(11*25),114,0)
