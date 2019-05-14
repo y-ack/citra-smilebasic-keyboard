@@ -1,8 +1,11 @@
+;; Remember: never ever hold down keys (specifically cursor/enter/backspace)
+;; also remember to set the D-Pad buttons to arrow keys for usability
+
 #IfWinActive ahk_exe citra-qt.exe
 ;#Warn
 
 WinActivate , ahk_exe citra-qt.exe
-SetKeyDelay, -1, 1
+SetKeyDelay, -1, 4
 
 ; macOS/GNU+Linux: use "~/.config/citra-emu/config/qt-config.ini"
 configDir := A_AppData . "\Citra\config\qt-config.ini"
